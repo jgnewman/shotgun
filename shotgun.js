@@ -4,6 +4,7 @@ Name: shotgun.js
 Author: John Newman
 Date: 12/22/2011
 License: MIT
+Version: 1.0
 Description: Smarter than your average pubsub library.  Small and fast.  
 Contains trappable internal events and gives you lots of control over your subscriptions.
 
@@ -18,7 +19,7 @@ Internal events you can trap:
 (function (context) {
     "use strict";
 
-    var eventsObj = {}, version = '1.0';
+    var eventsObj = {}, version = '1.0', sg;
 
     // Function for generating random strings
     function genUnique() {
@@ -95,7 +96,7 @@ Internal events you can trap:
         }
     }
 
-    context.SG = context.SHOTGUN = context.SHOTGUN || {
+    sg = {
 
         "fire" : function (obj) {
             return publish(obj);
@@ -116,5 +117,19 @@ Internal events you can trap:
         "version" : version
 
     };
+
+    // exports to multiple environments
+
+    // AMD
+    if (context.define && typeof context.define === 'function' && context.define.amd) {
+        context.define('shotgun', [], sg);
+    //node
+    } else if (context.module && context.module.exports) {
+        context.module.exports = sg;
+    // browser
+    } else {
+        // use string because of Google closure compiler ADVANCED_MODE
+        context['SHOTGUN'] = context['SG'] = sg;
+    }
 
 }(this));

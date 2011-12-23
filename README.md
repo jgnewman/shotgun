@@ -7,7 +7,7 @@ for events that you define and manually fire those events at will.  Unlike using
 unsubscribe any function from any event, even if your function isn't named.  Shotgun.js also publishes trappable,
 internal events as you use it.
 
-Shotgun passes JSLint, can be installed anywhere, and is also cross-browser compatible.  By default, it attaches a
+Shotgun passes JSLint (except for one optimization meant for Google Closure Compiler ADVANCED_MODE), can be installed anywhere, and is also cross-browser compatible.  By default, it attaches a
 namespace called SHOTGUN to the global object.  You can also use SG as a shorcut for this.  Here's how it works:
 
 ## Creating Subscriptions
