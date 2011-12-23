@@ -18,7 +18,7 @@ Internal events you can trap:
 (function (context) {
     "use strict";
 
-    var eventsObj = {};
+    var eventsObj = {}, version = '1.0';
 
     // Function for generating random strings
     function genUnique() {
@@ -111,9 +111,10 @@ Internal events you can trap:
 
         "events" : function () {
             return eventsObj;
-        }
+        },
+
+        "version" : version
 
     };
-
 
 }(this));
