@@ -35,8 +35,8 @@ the name of the event your function will subscribe to.  The **action** property 
 invoked when the event is fired.  But the real secret to Shotgun.js is the **key** property.  
 
 With the **key** property you can uniquely name each of your individual subscriptions.  If you do not pass a **key**
-property to **SHOTGUN.listen**, a random 64 character key will be generated for you.  **SHOTGUN.listen** returns your
-subscription key so that you will have it available for use in the future.
+property to **SHOTGUN.listen**, a random 24 character key will be generated for you.  **SHOTGUN.listen** returns your
+subscription key so that you will have it available for use in the future.  All random keys are guaranteed to be unique.
 
 You can subscribe as many functions to an event name as you want but you can not subscribe more than one function using
 the same key. If you try to give two subscriptions the same **key**, the first subscription will disappear, being
@@ -71,7 +71,7 @@ var eventKey3 = SHOTGUN.listen({
 	}
 });
 
-// returns something like => '.o:/u@D{#NLtr:PsKCIei_c.4c{9lP@Rv=c|N_NQeI6S*J9JcT?8#Evn*9t:UMBA'
+// returns something like => 'rJkB3oeekYLdQDvgG4LaRB9Y'
 
 ```
 
@@ -136,6 +136,41 @@ SHOTGUN.remove({"event" : "myCustomEvent"});
 
 ```
 
+## Better Error Handling
+
+As of v1.5 Shotgun makes it so you never have to write another ugly try/catch block ever again.  Take a look at the
+following code:
+
+```javascript
+
+function parseJSON(obj) {
+	SHOTGUN.try({
+		"event"  : "parseJSON",
+		"action" : function () {
+			JSON.parse(obj);
+		}
+	});
+}
+
+SHOTGUN.listen({
+	"event"  : "parseJSON".
+	"action" : function (err) {
+		doSomethingWith(err);
+	}
+});
+
+parseJSON('asdfasdfasdfadefasdf');
+// Error caught.  Launches doSomethingWith(err);
+
+
+```
+
+In the above code we define a function that calls **SHOTGUN.try** rather than setting up a traditional try block.
+**SHOTGUN.try** runs a try under the hood and publishes the error to an events channel for you within the catch block
+if an error occurs.  This way, you can catch the error with **SHOTGUN.listen** and completely decouple your error
+handling from your normal work flow.  In fact, you can even catch multiple errors with a single **.listen** and,
+if you wanted to, recursively call your try block again using the events channel.
+
 ## Internal Events
 
 You might be interested to know that Shotgun publishes events for you to trap whenever you make a subscription or
@@ -168,6 +203,14 @@ SHOTGUN.listen({
 	"event"  : "rmEvent",
 	"action" : function (e) {
 		// e === the event name that was removed
+	}
+});
+
+// tryError -> Fired any time SHOTGUN.try publishes an error
+SHOTGUN.listen({
+	"event"  : "tryError",
+	"action" : function (err) {
+		// err === the error object
 	}
 });
 
