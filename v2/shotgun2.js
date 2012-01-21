@@ -2,7 +2,7 @@
 
 Name: shotgun.js
 Author: John Newman
-Date: 12/22/2011
+Date: 1/21/2012
 License: MIT
 Version: 2.0
 Description: Smarter than your average pubsub library.  Small and fast.  
@@ -13,6 +13,8 @@ As of v2.0:
     You can now group events together under "directories".
     As such, you no longer pass in arrays of keys to publish because sub directories are a better way to group events.
     Changed syntax to generally help you get there faster.
+    Using a '*' at the end of your event will fire all events and events under sub-directories under the current path.
+    This is recursive though, so don't go crazy with your events if you're going to use it.
     SHOTGUN.events has been renamed SHOTGUN.getEvents.
 
 As of v1.5:
@@ -61,11 +63,11 @@ Internal events you can trap:
     }
 
     function lead(arr) {
-        return arr.slice(0, arr.length-1);
+        return arr.slice(0, arr.length - 1);
     }
 
     function last(arr) {
-        return arr[arr.length-1];
+        return arr[arr.length - 1];
     }
 
     function formatEvent(str) {
@@ -95,13 +97,19 @@ Internal events you can trap:
 
     sg = {
         "fire" : function (ev, key, args) {
-            var keyfix, parts, paths = [], endObj;
+            var paths = [], that = this, keyfix, parts, endObj, rec;
             ev = formatEvent(ev);
             parts = ev.split('/');
             if (!args && Object.prototype.toString.call(key) === '[object Array]') {
                 args = key;
             } else {
                 keyfix = key;
+            }
+            // Override key if the user wants to fire all events and sub events under a directory
+            if (last(parts) === '*') {
+                keyfix = null;
+                rec = true;
+                parts.length = parts.length - 1;
             }
             if (parts.length > 1) {
                 // do some freaking magic
@@ -119,21 +127,41 @@ Internal events you can trap:
                 // check if we were passed a key
                 if (keyfix) {
                     // isolate the key in the object and run it
-                    endObj[keyfix].apply(null, args);
+                    if (endObj[keyfix]) {
+                        endObj[keyfix].apply(null, args);
+                    }
                 } else {
-                    // run all keys in the object
-                    chart(endObj, function(v, k) {
-                        if (k.slice(0, 2) !== '_:') {
-                            v.apply(null, args);
-                        }
-                    });
+                    // if the event specified all events and sub events...
+                    if (rec) {
+                        chart(endObj, function (v, k) {
+                            if (k.slice(0, 2) === '_:') {
+                                // recurse if the value is a directory
+                                if (k !== '_::name') {
+                                    that.fire(parts.join('/') + '/' + k.slice(2) + '/*', args);
+                                }
+                            } else {
+                                // invoke if it's an event
+                                v.apply(null, args);
+                            }
+                        });
+                    } else {
+                        // run all non-meta keys in the object
+                        chart(endObj, function (v, k) {
+                            if (k.slice(0, 2) !== '_:') {
+                                v.apply(null, args);
+                            }
+                        });
+                    }
                 }
             }
         },
         "listen" : function (ev, key, fn) {
             var keyfix, parts, paths = [], finalPath, finalPart;
             ev = formatEvent(ev);
-            parts = ev.split('/')
+            parts = ev.split('/');
+            if (last(parts) === '*') {
+                parts.length = parts.length - 1;
+            }
             if (!fn && typeof key === 'function') {
                 fn = key;
                 keyfix = genUnique();
@@ -165,7 +193,10 @@ Internal events you can trap:
         "remove" : function (ev, key) {
             var parts, paths = [], endObj, endParent;
             ev = formatEvent(ev);
-            parts = ev.split('/')
+            parts = ev.split('/');
+            if (last(parts) === '*') {
+                parts.length = parts.length - 1;
+            }
             if (parts.length > 1) {
                 map(parts, function (each, i) {
                     var lastPath = last(paths) || eventsObj,
@@ -186,7 +217,7 @@ Internal events you can trap:
                 chart(endObj, function (v, k) {
                     delete keysUsed[k];
                 });
-                delete endParent['_:' + endObj['_::name']];
+                delete endParent['_:' + ((endObj) ? endObj['_::name'] : parts[0])];
                 this.fire('rmEvent', [ev]);
             }
         },
@@ -212,5 +243,20 @@ Internal events you can trap:
         },
         "version" : version
     };
+
+    // exports to multiple environments
+
+    // AMD
+    if (context.define && typeof context.define === 'function' && context.define.amd) {
+        context.define('SHOTGUN', [], sg);
+        context.define('SG', [], sg);
+    // weird stuff
+    } else if (context.module && context.module.exports) {
+        context.module.exports = sg;
+    // browser & node
+    } else {
+        // use string because of Google closure compiler ADVANCED_MODE
+        context['SHOTGUN'] = context['SG'] = sg;
+    }
 
 }(this));
