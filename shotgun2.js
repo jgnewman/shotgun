@@ -68,6 +68,16 @@ Internal events you can trap:
         return arr[arr.length-1];
     }
 
+    function formatEvent(str) {
+        if (str[0] === '/') {
+            str = rest(str);
+        }
+        if (last(str) === '/') {
+            str = lead(str);
+        }
+        return str;
+    }
+
     // Function for generating random strings
     function genUnique() {
         var i, newStr = '', chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghiklmnopqrstuvwxyz';
@@ -85,7 +95,9 @@ Internal events you can trap:
 
     sg = {
         "fire" : function (ev, key, args) {
-            var keyfix, parts = ev.split('/'), paths = [], endObj;
+            var keyfix, parts, paths = [], endObj;
+            ev = formatEvent(ev);
+            parts = ev.split('/');
             if (!args && Object.prototype.toString.call(key) === '[object Array]') {
                 args = key;
             } else {
@@ -119,7 +131,9 @@ Internal events you can trap:
             }
         },
         "listen" : function (ev, key, fn) {
-            var keyfix, parts = ev.split('/'), paths = [], finalPath, finalPart;
+            var keyfix, parts, paths = [], finalPath, finalPart;
+            ev = formatEvent(ev);
+            parts = ev.split('/')
             if (!fn && typeof key === 'function') {
                 fn = key;
                 keyfix = genUnique();
@@ -149,7 +163,9 @@ Internal events you can trap:
             return keyfix;
         },
         "remove" : function (ev, key) {
-            var parts = ev.split('/'), paths = [], endObj, endParent;
+            var parts, paths = [], endObj, endParent;
+            ev = formatEvent(ev);
+            parts = ev.split('/')
             if (parts.length > 1) {
                 map(parts, function (each, i) {
                     var lastPath = last(paths) || eventsObj,
