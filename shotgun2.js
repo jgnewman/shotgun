@@ -11,7 +11,9 @@ Contains trappable internal events and gives you lots of control over your subsc
 As of v2.0:
     Completely revamped the events syntax to feel and work more like a directory system.
     You can now group events together under "directories".
+    As such, you no longer pass in arrays of keys to publish because sub directories are a better way to group events.
     Changed syntax to generally help you get there faster.
+    SHOTGUN.events has been renamed SHOTGUN.getEvents.
 
 As of v1.5:
     Contains an event-based abstraction of the try/catch block.  
@@ -31,7 +33,12 @@ Internal events you can trap:
 (function (context) {
     "use strict";
 
-    var eventsObj = {}, keysUsed = {}, version = '2.0', sg;
+    var eventsObj, keysUsed = {}, version = '2.0', sg;
+
+    function EvDir(name) {
+        this['_::name'] = name;
+    }
+    eventsObj = new EvDir('eventsObj');
 
     function map(arr, fn) {
         var i, l = arr.length;
@@ -40,8 +47,21 @@ Internal events you can trap:
         }
     }
 
+    function chart(obj, fn) {
+        var i;
+        for (i in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, i)) {
+                fn(obj[i], i);
+            }
+        }
+    }
+
     function rest(arr) {
         return arr.slice(1);
+    }
+
+    function lead(arr) {
+        return arr.slice(0, arr.length-1);
     }
 
     function last(arr) {
@@ -54,7 +74,8 @@ Internal events you can trap:
         for (i = 0; i < 24; i += 1) {
             newStr += chars[Math.floor(Math.random() * chars.length)];
         }
-        if (!keysUsed[newStr] || newStr.slice(0, 7) !== '_evdir_') {
+        // _: is the secret identifier for directories
+        if (!keysUsed[newStr] || newStr.slice(0, 2) !== '_:') {
             keysUsed[newStr] = true;
             return newStr;
         } else {
@@ -62,43 +83,118 @@ Internal events you can trap:
         }
     }
 
-    function publish(ev, key, args) {
-        
-    }
-
-    function subscribe(ev, key, fn) {
-        // !! Note: make it so events are somehow distinguishable from keys in a given directory
-        var keyfix, parts = ev.split('/'), paths = [], finalPath, finalPart;
-        if (!fn && typeof key === 'function') {
-            fn = key;
-            keyfix = genUnique();
-        } else {
-            keyfix = key;
-        }
-        if (parts.length > 1) {
-            // make sure an object exists for the event and every sub event underneath it
-            map(rest(parts), function (e, i) {
-                var lastPath = last(paths) || eventsObj;
-                lastPath[parts[i]] = lastPath[parts[i]] || {};
-                paths.push(lastPath[parts[i]]);
-            });
-            finalPath = last(paths);
-            finalPart = last(parts);
-            finalPath[finalPart] = finalPath[finalPart] || {};
-            // subscribe the function to the event
-            finalPath[finalPart][keyfix] = fn;
-        } else {
-            finalPart = parts[0];
-            eventsObj[finalPart] = eventsObj[finalPart] || {};
-            // subscribe the function to the event
-            eventsObj[finalPart][keyfix] = fn;
-        }
-        // !! publish the new susbscription event here
-        return keyfix;
-    }
-
-    function getEvents() {
-        return eventsObj;
-    }
+    sg = {
+        "fire" : function (ev, key, args) {
+            var keyfix, parts = ev.split('/'), paths = [], endObj;
+            if (!args && Object.prototype.toString.call(key) === '[object Array]') {
+                args = key;
+            } else {
+                keyfix = key;
+            }
+            if (parts.length > 1) {
+                // do some freaking magic
+                map(parts, function (each, i) {
+                    var lastPath = last(paths) || eventsObj,
+                        part = '_:' + each;
+                    paths.push(lastPath[part]);
+                });
+                endObj = last(paths);
+            } else {
+                endObj = eventsObj['_:' + parts[0]];
+            }
+            // only try to invoke if the object exists.  we don't want errors
+            if (endObj) {
+                // check if we were passed a key
+                if (keyfix) {
+                    // isolate the key in the object and run it
+                    endObj[keyfix].apply(null, args);
+                } else {
+                    // run all keys in the object
+                    chart(endObj, function(v, k) {
+                        if (k.slice(0, 2) !== '_:') {
+                            v.apply(null, args);
+                        }
+                    });
+                }
+            }
+        },
+        "listen" : function (ev, key, fn) {
+            var keyfix, parts = ev.split('/'), paths = [], finalPath, finalPart;
+            if (!fn && typeof key === 'function') {
+                fn = key;
+                keyfix = genUnique();
+            } else {
+                keyfix = key;
+            }
+            if (parts.length > 1) {
+                // make sure an object exists or is created for the event and every sub event underneath it
+                map(parts, function (each, i) {
+                    // do some freaking magic
+                    var lastPath = last(paths) || eventsObj,
+                        part = '_:' + each;
+                    lastPath[part] = lastPath[part] || new EvDir(each);
+                    paths.push(lastPath[part]);
+                });
+                // and don't forget to actually subscribe the function
+                finalPath = last(paths);
+                finalPath[keyfix] = fn;
+            } else {
+                finalPart = '_:' + parts[0];
+                eventsObj[finalPart] = eventsObj[finalPart] || new EvDir(parts[0]);
+                // subscribe the function to the event
+                eventsObj[finalPart][keyfix] = fn;
+            }
+            // publish the newListener event
+            this.fire('newListener', [ev, keyfix, fn]);
+            return keyfix;
+        },
+        "remove" : function (ev, key) {
+            var parts = ev.split('/'), paths = [], endObj, endParent;
+            if (parts.length > 1) {
+                map(parts, function (each, i) {
+                    var lastPath = last(paths) || eventsObj,
+                        part = '_:' + each;
+                    paths.push(lastPath[part]);
+                });
+                endObj = last(paths);
+                endParent = last(lead(paths));
+            } else {
+                endObj = eventsObj[parts[0]];
+                endParent = eventsObj;
+            }
+            if (key && endObj[key]) {
+                delete endObj[key];
+                delete keysUsed[key];
+                this.fire('rmListener', [ev, key]);
+            } else if (!key) {
+                chart(endObj, function (v, k) {
+                    delete keysUsed[k];
+                });
+                delete endParent['_:' + endObj['_::name']];
+                this.fire('rmEvent', [ev]);
+            }
+        },
+        "try" : function (ev, key, fn) {
+            var keyfix;
+            if (!fn && typeof key === 'function') {
+                fn = key;
+                keyfix = genUnique();
+            } else {
+                keyfix = key;
+            }
+            try {
+                fn();
+            } catch (err) {
+                this.fire(ev, key, [err]);
+                if (ev !== 'tryError') {
+                    this.fire('tryError', key, [err]);
+                }
+            }
+        },
+        "getEvents" : function () {
+            return eventsObj;
+        },
+        "version" : version
+    };
 
 }(this));
