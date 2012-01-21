@@ -225,16 +225,23 @@ Internal events you can trap:
             var keyfix;
             if (!fn && typeof key === 'function') {
                 fn = key;
-                keyfix = genUnique();
             } else {
                 keyfix = key;
             }
             try {
                 fn();
             } catch (err) {
-                this.fire(ev, key, [err]);
+                if (keyfix) {
+                    this.fire(ev, keyfix, [err]);
+                } else {
+                    this.fire(ev, [err]);
+                }
                 if (ev !== 'tryError') {
-                    this.fire('tryError', key, [err]);
+                    if (keyfix) {
+                        this.fire('tryError', keyfix, [err]);
+                    } else {
+                        this.fire('tryError', [err]);
+                    }
                 }
             }
         },
