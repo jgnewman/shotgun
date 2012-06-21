@@ -172,7 +172,7 @@ SHOTGUN.fire('myEvent/*', [2, 4]);
 ```
 
 Using an asterisk tells Shotgun "I want you to invoke EVERYTHING underneath this event."  You'll
-want to be congniscent of what you're doing when you use this technique however, because it does
+want to be cognisant of what you're doing when you use this technique however, because it does
 work recursively.  Of course, you won't risk blowing out the call stack unless you have created
 hundreds of levels of nested sub-events.  But you should know to avoid creating hundreds of levels
 of nested sub-events and then using an asterisk at the top level.
