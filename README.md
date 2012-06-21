@@ -35,13 +35,13 @@ var eventKey = SHOTGUN.listen('myEvent', 'myKeyName', function (x, y) {
 
 ```
 
-In the above example we passed 3 arguments to **SHOTGUN.listen**.  The first argument contains
+In the above example we passed 3 arguments to `SHOTGUN.listen`.  The first argument contains
 the name of the event your function will subscribe to.  The last argument contains the function 
 that should be invoked when the event is fired.  But the real secret to Shotgun.js is the 
 middle argument: the subscription key.  
 
 With a subscription key, you can uniquely name each of your individual subscriptions.  If you don't 
-pass a key name to **SHOTGUN.listen**, a random 24 character key will be generated for you.  Doing
+pass a key name to `SHOTGUN.listen`, a random 24 character key will be generated for you.  Doing
 it that way would look like this:
 
 ```javascript
@@ -54,7 +54,7 @@ var eventKey = SHOTGUN.listen('myEvent', function (x, y) {
 
 ```
  
-**SHOTGUN.listen** returns your subscription key so that you will have it available for use in 
+`SHOTGUN.listen` returns your subscription key so that you will have it available for use in 
 the future.  All random keys are guaranteed to be unique.
 
 You can subscribe as many functions to an event name as you want but you can not subscribe more 
@@ -116,7 +116,7 @@ SHOTGUN.listen('myEvent/subEvent2', function (x, y) {
 
 ```
 
-We now have 2 functions subscribed directly to **myEvent**.  This event also has two sub-events
+We now have 2 functions subscribed directly to `myEvent`.  This event also has two sub-events
 underneath it, each with its own function subscription.  When we fire an event, we publish an
 array of arguments to an event directory.  Each function subscribed to that event directory will
 then be invoked, taking the arguments into itself.  In the simplest case, we might do this:
@@ -131,7 +131,7 @@ SHOTGUN.fire('myEvent', [2, 2]);
 
 ```
 
-In the above example, only the functions directly subscribed to **myEvent** run.  And if we only
+In the above example, only the functions directly subscribed to `myEvent` run.  And if we only
 wanted to run one of them, we could pass in the subscription key as well:
 
 ```javascript
@@ -182,7 +182,7 @@ of nested sub-events and then using an asterisk at the top level.
 
 Once you make a subscription, it exists until you either remove it manually or override it 
 with another subscription.  That's OK because subscription keys give us a way to easily do 
-that.  We just call **SHOTGUN.remove**.
+that.  We just call `SHOTGUN.remove`.
 
 ```javascript
 
@@ -193,7 +193,7 @@ SHOTGUN.remove('event/subEvent/subsubEvent', 'uniqueKey');
 ```
 
 In the above example we removed a single subscription from an event.  However, we can also 
-remove all subscriptions from an event simply by not passing in a key to **SHOTGUN.remove**.
+remove all subscriptions from an event simply by not passing in a key to `SHOTGUN.remove`.
 
 ```javascript
 
@@ -226,14 +226,14 @@ parseJSON('asdfasdfasdfadefasdf');
 
 ```
 
-In the above code we define a function that calls **SHOTGUN.try** rather than setting up a 
-traditional try block. **SHOTGUN.try** runs a try under the hood and publishes the error 
+In the above code we define a function that calls `SHOTGUN.try` rather than setting up a 
+traditional try block. `SHOTGUN.try` runs a try under the hood and publishes the error 
 to an events channel for you within the catch block if an error occurs.
 
 This way, you can 
-catch the error with **SHOTGUN.listen** and completely decouple your error handling from 
-your normal work flow.  In fact, you can even catch multiple errors with a single **.listen** and,
-if you want to, recursively call your try block again using **SHOTGUN.fire**.
+catch the error with `SHOTGUN.listen` and completely decouple your error handling from 
+your normal work flow.  In fact, you can even catch multiple errors with a single `.listen` and,
+if you want to, recursively call your try block again using `SHOTGUN.fire`.
 
 ## Internal Events
 
@@ -272,7 +272,7 @@ SHOTGUN.listen('tryError', function (err) {
 ## Keeping Track
 
 Lastly, you can always get a look at the current state of Shotgun.js subscriptions by calling
-**SHOTGUN.getEvents**.
+`SHOTGUN.getEvents`.
 
 ```javascript
 
@@ -290,11 +290,11 @@ SHOTGUN.getEvents()
 ```
 
 Notice in the example object returned that each directory and sub-directory is really just
-an object.  Each one has **_::name** property containing the name you've given it.  All event
-sub-directories also begin with **_:**.  For this reason among others, you should only use
+an object.  Each one has `_::name` property containing the name you've given it.  All event
+sub-directories also begin with `_:`.  For this reason among others, you should only use
 letters and numbers in your event names and subscription keys.
 
-Since **getEvents** gives you such an honest look at the state of your subscriptions and their
+Since `getEvents` gives you such an honest look at the state of your subscriptions and their
 names, you will need to keep that in mind when drilling down to look into sub-levels.  This
 tool is really meant for debugging as you will probably not need to really use it for any
 reason in your code.
