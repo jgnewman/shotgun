@@ -1,15 +1,17 @@
 # Shotgun.js
 
-> Smarter than your average pubsub library.
+> Smarter than your average event library.
 
 Shotgun.js is a custom event manager for JavaScript.  Built on the observer pattern, 
 you can tell functions to listen for events that you define and manually fire those events at will.  As
-an added benefit, you can easily unsubscribe any function from any event, even if your function isn't
+an added benefit, you can nest sub events under parent events, invoke single subscriptions or groups of
+functions at once, abstract try/catch blocks out of your code, and easily unsubscribe any function from
+any event, even if your function isn't
 named.  Shotgun.js also publishes trappable, internal events as you use it.
 
 Shotgun passes JSLint (with nomen set to true), 
 can be installed anywhere, and is also cross-browser compatible.  By default, it attaches a
-namespace called SHOTGUN to the global object.  You can also use SG as a shorcut for this.
+namespace called `SHOTGUN` to the global object.  You can also use `SG` as a shorcut for this.
 
 ### New in version 3.0
 
@@ -69,7 +71,7 @@ first subscription will disappear, being overridden by the the second.  Uniquely
 keys will allow you to delete any subscription, whether the function is named or not.
 
 > NOTE: You can name your events and keys whatever you want as long as you don't prefix them with
-> '_SG_'.  This prefix is used internally by the system and, although unlikely, there is a chance
+> `_SG_`.  This prefix is used internally by the system and, although unlikely, there is a chance
 > of overwriting important functionality if you use this prefix.
 
 It's good to know that you don't have to do anything special to create an event for the first time.
