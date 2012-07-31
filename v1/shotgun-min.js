@@ -1,8 +1,0 @@
-/*
-Name: shotgun.js
-Author: John Newman
-License: MIT
-*/
-(function(a){"use strict";var b={},c={},d='1.5',e;function f(){var i,m='',n='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghiklmnopqrstuvwxyz';for(i=0;i<24;i+=1){m+=n[Math.floor(Math.random()*n.length)];}if(!c[m]){c[m]=true;return m;}else{return f();}}function g(q){var i,m,n,o,p=b[q.event];if(p&&p[q.key]){if(typeof q.key==='string'){q.key=[q.key];}n=q.key.length;for(i=0;i<n;i+=1){m=p[q.key[i]];o=m.action;if(o){o.apply(null,q.args);}}}else if(p&&!p[q.key]){for(i in p){if(Object.prototype.hasOwnProperty.call(p,i)){p[i].action.apply(null,q.args);}}}}function h(n){var m=n.key||f();b[n.event]=b[n.event]||{};b[n.event][m]={"action":n.action};g({"event":"newListener","args":[n]});return m;}function j(m){var i;if(!m.key){if(b[m.event]){for(i in b[m.event]){if(Object.prototype.hasOwnProperty.call(b[m.event],i)){delete c[i];}}delete b[m.event];g({"event":"rmEvent","args":[m.event]});return true;}else{return false;}}if(b[m.event][m.key]){delete b[m.event][m.key];delete c[m.key];g({"event":"rmListener","args":[m.event,m.key]});return true;}else{return false;}}function k(n){var m=n.key||null;
-try{n.action();}catch(p){g({"event":n.event,"key":m,"args":[p]});if(n.event!=='tryError'){g({"event":"tryError","key":m,"args":[p]});}}}e={"fire":function(m){return g(m);},"listen":function(m){return h(m);},"remove":function(m){return j(m);},"events":function(){return b;},
-"try":function(m){return k(m);},"version":d};if(a.define&&typeof a.define==='function'&&a.define.amd){a.define('SHOTGUN',[],e);}else if(a.module&&a.module.exports){a.module.exports=e;}else{a['SHOTGUN']=a['SG']=e;}}(this));
