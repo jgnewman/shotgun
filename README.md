@@ -13,8 +13,9 @@ Shotgun passes JSLint (with nomen set to true),
 can be installed anywhere, and is also cross-browser compatible.  By default, it attaches a
 namespace called `SHOTGUN` to the global object.  You can also use `SG` as a shorcut for this.
 
-### New in version 3.0
+### New since version 3.0
 
+- Support for internal events makes it better for integrating with larger frameworks.
 - Since it is least frequently used, key is now always the last argument.
 - `SG.try` has been renamed SG.attempt for linting purposes.
 - `SG.attempt` now passes the function you tried to call along with the error to the error listener.
@@ -71,7 +72,7 @@ first subscription will disappear, being overridden by the the second.  Uniquely
 keys will allow you to delete any subscription, whether the function is named or not.
 
 > NOTE: You can name your events and keys whatever you want as long as you don't prefix them with
-> `_SG_`.  This prefix is used internally by the system and, although unlikely, there is a chance
+> an underbar.  The underbar is used internally by the system and, although unlikely, there is a chance
 > of overwriting important functionality if you use this prefix.
 
 It's good to know that you don't have to do anything special to create an event for the first time.
@@ -241,8 +242,8 @@ catch a single error with multiple functions, and, if you want to, recursively c
 again.
 
 Incidentally, you don't actually have to pass in an event name when you call `SHOTGUN.attempt`.
-Any time this function catches an error, it publishes an internal event called `tryError`.  Because
-of this you can create subscriptions to the `tryError` event and do all of your error handling that
+Any time this function catches an error, it publishes an internal event called `_internal/tryError`.  Because
+of this you can create subscriptions to the `_internal/tryError` event and do all of your error handling that
 way if you want.
 
 ## Internal Events
@@ -250,36 +251,75 @@ way if you want.
 You might be interested to know that Shotgun publishes several internal events for you to trap
 whenever you 
 make a subscription or remove a subscription.  There is no trappable event when a publish 
-occurs because that would suck you into an infinite loop.  Nobody wants that.  
-Anyway, here are your internal events:
+occurs because that would suck you into an infinite loop.
+Here are your internal events:
 
 ```javascript
 
 // newListener -> Fired any time a subscription is made
-SHOTGUN.listen('newListener', function (ev, fn, key) {
+SHOTGUN.listen('_internal/newListener', function (ev, fn, key) {
         // ev  === the event name (in this case 'newListener')
         // fn  === the function that subscribed to the event
         // key === the subscirption key
 });
 
 // rmListener -> Fired any time a specific subscription is removed
-SHOTGUN.listen('rmListener', function (ev, key) {
+SHOTGUN.listen('_internal/rmListener', function (ev, key) {
         // ev  === the event name from which the listener was removed
         // key === the subscirption key
 });
 
 // rmEvent -> Fired any time you delete an entire event and all its subscriptions
-SHOTGUN.listen('rmEvent', function (ev) {
+SHOTGUN.listen('_internal/rmEvent', function (ev) {
         // ev === the event name you removed
 });
 
 // tryError -> Fired any time SHOTGUN.try publishes an error
-SHOTGUN.listen('tryError', function (err, fn) {
+SHOTGUN.listen('_internal/tryError', function (err, fn) {
         // err === the error object
         // fn  === the function you tried to invoke with SHOTGUN.attempt
 });
 
 ```
+
+If you are using Shotgun as a component of a larger framework, providing access to its functionality indirectly
+through your own API, you may want the ability to create your own internal events.  Internal events are useful
+because they are not stored in the same place regular events are stored.  This means that as the user creates
+events, there will be no risk of overwriting any internal events you may have created.
+
+Creating a new internal event is not as easy as simply subscribing to it and assuming that it now exists due to
+the subscription.  Instead, to register an internal event, you'll call `SHOTGUN.registerInternal`:
+
+```javascript
+SG.registerInternal('myInternalEvent');
+
+// also...
+
+SG.registerInternal('myInternalEvent/subEvent1');
+
+// also...
+
+SG.registerInternal('event1', 'event2', 'event3');
+```
+
+If you attempt to subscribe to a custom internal event without registering that event first, Shotgun will produce
+an error.  Notice that `.registerInternal` can register entire internal directory chains at once and can take as
+many event names you'd like to give it as arguments.
+
+When firing or removing an internal event, or when listening for an internal event via `SHOTGUN.attempt`, you must
+prefix your event name with the string '_internal' as follows:
+
+```javascript
+SG.fire('_internal/myInternalEvent');
+
+SG.remove('_internal/myInternalEvent');
+
+SG.attempt('_internal/myInternalError', function () { ... })
+```
+
+The '_internal' prefix tells Shotgun to look for the event in the `InternalEvents` directory rather than in the
+standard directory.  Notice that you do not need to use this prefix when registering internal events.
+
 
 ## Keeping Track
 
@@ -314,4 +354,8 @@ Events
 Notice in the example object returned that events associated with a given directory are accessible
 via the directory's prototype.  This allows Shotgun to do faster iterations without having to
 sort out which properties are directories and which properties are direct subscriptions.
+
+Also notice that registered internal events are NOT found in this directory.  To view all registered
+internal events, call `SHOTGUN.getInternalEvents`.  It will return an object very much the same as
+the object returned by `getEvents` except it will show only registered internal events.
 

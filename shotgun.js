@@ -4,10 +4,13 @@ Name: shotgun.js
 Author: John Newman
 Date: 1/21/2012
 License: MIT
-Version: 3.0
+Version: 3.1
 URL: github.com/jgnewman/shotgun
 Description: Smarter than your average pubsub library.  Small and fast.  
 Contains trappable internal events and gives you lots of control over your subscriptions.
+
+As of v3.1:
+    Support for internal events such that you won't risk overwriting internal event names when you create an event.
 
 As of v3.0:
     Since it is least frequently used, key is now always the last argument.
@@ -46,15 +49,20 @@ Internal events you can trap:
     // This is to give you more options for naming your events.
     /*jslint nomen: true */
 
-    var version       = '3.0',
+    var version       = '3.1',
         idIncrementor = 999999,
         realEvents    = {},
         eventDirs,
+        internalEventDirs,
         sg;
 
-    // Constructor for naming our eventDirs object
+    // Constructors for naming our event dir objects
     function Events() {}
+    function InternalEvents() {}
+
+    // Use the constructors to name our event dir objects
     eventDirs = new Events();
+    internalEventDirs = new InternalEvents();
 
     // Function for looping over an array
     function map(arr, fn) {
@@ -107,11 +115,23 @@ Internal events you can trap:
         return newStr;
     }
 
+    // Function for determining whether we're firing internal events nor non
+    function evIsInternal(name) {
+        return (name.slice(0, 9) === '_internal');
+    }
+
     // Function for creating a directory object.
-    function dirObject(name, parentDir) {
+    function dirObject(name, parentDir, gotHereFromListen) {
+        var eventRef;
+        
+        // Die if we're trying to create a directory under internalEventDirs
+        // and we got here from Shotgun.listen
+        if (parentDir === internalEventDirs && gotHereFromListen) {
+            throw new Error('Attempt to subscribe to an internal event without first registering the event.');
+        }
 
         // Create a new id and a spot in realEvents associated with it
-        var eventRef = uid();
+        eventRef = uid();
         realEvents[eventRef] = {};
 
         // Set up a prototype with access to that spot in realEvents
@@ -160,7 +180,7 @@ Internal events you can trap:
                 argArray,
                 realKey,
                 recursive,
-                evDir = eventDirs;
+                evDir;
 
             // Allow user to be somewhat liberal with arguments
             if (typeof args === 'string') {
@@ -171,7 +191,16 @@ Internal events you can trap:
                 realKey = key;
             }
 
-            // Determine whether or not we need to be recursive and set up our event array
+            // Determine whether this is an internal event or not and set evDir appropriately
+            if (evIsInternal(ev)) {
+                // Slice the keyword off the front of the event name
+                ev = ev.slice(10);
+                evDir = internalEventDirs;
+            } else {
+                evDir = eventDirs;
+            }
+
+            // Determine whether or not we need to be recursive and set up our directory chain array
             if (last(ev) === '*') {
                 recursive = true;
                 eventArray = lead(lead(ev)).split('/');
@@ -179,7 +208,7 @@ Internal events you can trap:
                 eventArray = ev.split('/');
             }
 
-            // Find our event directory
+            // Use that chain array to find our event directory
             map(eventArray, function (each) {
                 evDir = evDir[each];
             });
@@ -195,13 +224,25 @@ Internal events you can trap:
         },
 
         "listen" : function (ev, fn, key) {
-            var realKey   = key || uid(),
-                evArray   = ev.split('/'),
+            var realKey = key || uid(),
+                evArray,
+                parentDir;
+
+            // Determine whether this is an internal event or not and set parentDir appropriately
+            if (evIsInternal(ev)) {
+                // Slice the keyword off the front of the event name
+                ev = ev.slice(10);
+                parentDir = internalEventDirs;
+            } else {
                 parentDir = eventDirs;
+            }
+
+            // Creat our directory chain array
+            evArray = ev.split('/');
 
             // create directories as needed
             map(evArray, function (each) {
-                parentDir[each] = parentDir[each] || dirObject(each, parentDir);
+                parentDir[each] = parentDir[each] || dirObject(each, parentDir, true);
                 parentDir = parentDir[each];
             });
 
@@ -209,16 +250,41 @@ Internal events you can trap:
             parentDir._SG_dirEvents[realKey] = fn;
 
             // fire an internal event
-            this.fire('newListener', [ev, fn, realKey]);
+            this.fire('_internal/newListener', [ev, fn, realKey]);
 
             return realKey;
         },
 
-        "remove" : function (ev, key) {
+        "registerInternal" : function () { /* list as many event names as you want as arguments */
+            map(arguments, function (arg) {
+                var evDir = internalEventDirs,
+                    evArray = arg.split('/');
 
-            // Set up our event array
-            var eventArray = ev.split('/'),
+                // create directories as needed
+                map(evArray, function (each) {
+                    evDir[each] = evDir[each] || dirObject(each, evDir, false);
+                    evDir = evDir[each];
+                });
+            });
+
+            return true;
+        },
+
+        "remove" : function (ev, key) {
+            var eventArray,
+                evDir;
+
+            // Determine whether this is an internal event or not and set evDir appropriately
+            if (evIsInternal(ev)) {
+                // Slice the keyword off the front of the event name
+                ev = ev.slice(10);
+                evDir = internalEventDirs;
+            } else {
                 evDir = eventDirs;
+            }
+
+            // Set up our directory chain array
+            eventArray = ev.split('/');
 
             // Find our event directory
             map(eventArray, function (each) {
@@ -228,14 +294,14 @@ Internal events you can trap:
             // If we have a key, remove that function and end
             if (key) {
                 delete evDir._SG_dirEvents[key];
-                this.fire('rmListener', [ev, key]);
+                this.fire('_internal/rmListener', [ev, key]);
                 return true;
             }
 
             // If we don't have a key, remove the entire event and end
             delete realEvents[evDir._SG_dirEventsKey];
             delete evDir._SG_parentDir[evDir._SG_dirName];
-            this.fire('rmEvent', [ev]);
+            this.fire('_internal/rmEvent', [ev]);
             return true;
 
         },
@@ -269,7 +335,7 @@ Internal events you can trap:
                 }
 
                 // Fire the internal tryError event
-                this.fire('tryError', [err, realFn], realKey);
+                this.fire('_internal/tryError', [err, realFn], realKey);
 
             }
         },
@@ -278,8 +344,15 @@ Internal events you can trap:
             return eventDirs;
         },
 
+        "getInternalEvents" : function () {
+            return internalEventDirs;
+        },
+
         "version" : version
     };
+
+    // Register default internal events
+    sg.registerInternal('newListener', 'rmEvent', 'rmListener', 'tryError');
 
     // Export to multiple environments
 
