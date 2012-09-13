@@ -324,7 +324,7 @@ Internal events you can trap:
 
             // Try to call the function
             try {
-                realFn();
+                return realFn();
 
             // If it doesn't work...
             } catch (err) {
@@ -336,6 +336,8 @@ Internal events you can trap:
 
                 // Fire the internal tryError event
                 this.fire('_internal/tryError', [err, realFn], realKey);
+                
+                return false;
 
             }
         },
