@@ -4,7 +4,7 @@ Name: shotgun.js
 Author: John Newman
 Date: 1/21/2012
 License: MIT
-Version: 3.1
+Version: 3.2
 URL: github.com/jgnewman/shotgun
 Description: Smarter than your average pubsub library.  Small and fast.  
 Contains trappable internal events and gives you lots of control over your subscriptions.
