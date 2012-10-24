@@ -359,3 +359,13 @@ Also notice that registered internal events are NOT found in this directory.  To
 internal events, call `SHOTGUN.getInternalEvents`.  It will return an object very much the same as
 the object returned by `getEvents` except it will show only registered internal events.
 
+## For Your Convenience
+
+SHOTGUN provides a shortcut for executing functions when the document is ready.
+
+```javascript
+SHOTGUN.docReady(function () {
+   // executes when the document is ready 
+});
+```
+
