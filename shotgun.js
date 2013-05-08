@@ -497,7 +497,7 @@
   // Export to multiple environments
 
   // AMD
-  if (global.define && typeof global.define === fun && global.define.amd) {
+  if (global.define && typeof global.define === 'function' && global.define.amd) {
     global.define('SHOTGUN', [], output);
 
   // Node
