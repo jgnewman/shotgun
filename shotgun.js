@@ -52,6 +52,7 @@
       idIncrementor = 999999,
       realEvents    = {},
       excludeItem   = {},
+      docIsReady    = false,
       eventDirs,
       internalEventDirs,
       output;
@@ -474,12 +475,15 @@
      */
     "docReady" : function (fun) {
       this.listen('docReady', fun);
+      if (docIsReady) {
+        fun(global);
+      }
     }
   };
 
   // Register default internal events
   output.registerInternal('newListener', 'rmEvent', 'rmListener', 'tryError');
-  
+
   /*
    * If we're in the browser, setup a docReady event for convenience
    */
@@ -487,7 +491,8 @@
     if (/in/.test(global.document.readyState)) {
       return global.setTimeout(fireDocReady, 100);
     }
-    return output.fire('docReady');
+    docIsReady = true;
+    return output.fire('docReady', [global]);
   }
   
   if (global.constructor.name === 'Window') {
@@ -498,7 +503,7 @@
 
   // AMD
   if (global.define && typeof global.define === 'function' && global.define.amd) {
-    global.define('SHOTGUN', [], output);
+    global.define(output);
 
   // Node
   } else if (module && module.exports) {
@@ -508,5 +513,6 @@
   } else {
     global.SHOTGUN = global.SG = output;
   }
+
 
 }(this));
