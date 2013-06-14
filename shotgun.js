@@ -502,8 +502,10 @@
   // Export to multiple environments
 
   // AMD
-  if (global.define && typeof global.define === 'function' && global.define.amd) {
-    global.define(output);
+  if (typeof global.define === 'function' && global.define.amd) {
+    define('shotgun', function() {
+    	return output;
+    });
 
   // Node
   } else if (module && module.exports) {
