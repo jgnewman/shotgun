@@ -11,7 +11,7 @@ named.  Shotgun.js also publishes trappable, internal events as you use it.
 
 Shotgun passes JSLint (with nomen set to true), 
 can be installed anywhere, and is also cross-browser compatible.  By default, it attaches a
-namespace called `SHOTGUN` to the global object.  You can also use `SG` as a shorcut for this.
+namespace called `SHOTGUN` to the global object.  You can also use `SG` as a shortcut for this.
 
 ### New since version 3.0
 
