@@ -502,13 +502,13 @@
   // Export to multiple environments
 
   // AMD
-  if (typeof global.define === 'function' && global.define.amd) {
-    define('shotgun', function() {
+  if (typeof define === 'function' && define.amd) {
+    define('shotgun', [], function() {
     	return output;
     });
 
   // Node
-  } else if (module && module.exports) {
+  } else if (typeof exports === 'object') {
     module.exports = output;
 
   // Browser
@@ -518,3 +518,4 @@
 
 
 }(this));
+
